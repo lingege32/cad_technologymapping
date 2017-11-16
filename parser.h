@@ -3,10 +3,10 @@
 #include<iostream>
 #include<stdio.h>
 #include<stdlib.h>
-#include<fstream>
 #include<iostream>
 #include<string.h>
 #include<vector>
+#include<fstream>
 using namespace std;
 class node_s
 {

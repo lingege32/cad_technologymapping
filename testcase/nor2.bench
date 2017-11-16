@@ -1,0 +1,9 @@
+INPUT(P1)
+INPUT(P2)
+
+OUTPUT(G4)
+
+G1 = NOT(P1)
+G2 = NOT(P2)
+G3 = NAND(G1, G2)
+G4 = NOT(G3)

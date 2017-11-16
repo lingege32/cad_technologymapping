@@ -1,0 +1,6 @@
+INPUT(P1)
+INPUT(P2)
+
+OUTPUT(G1)
+
+G1 = NAND(P1, P2)

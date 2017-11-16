@@ -1,8 +1,7 @@
 #include"parser.h"
-ifstream fin;
-ofstream fout;
 void parser::parse(const char* p_case)
 {
+    ifstream fin;
     fin.open(p_case);
     int count=0;
     char buffer[80];

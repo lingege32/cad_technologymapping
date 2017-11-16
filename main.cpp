@@ -1,6 +1,6 @@
 #include"parser.h"
 #include"tm.h"
-
+using namespace std;
 int main(int argc,char* argv[])
 {
     parser *par;
@@ -11,6 +11,9 @@ int main(int argc,char* argv[])
     tm = new c_tm(par);
     tm->parsecell(argv[2]);
     tm->initial();
-    tm->dump();
+    //tm->dump();
+    tm->mapping();
+    tm->link();
+    tm->printinfo(argv[3],argv[4]);
     return 0;    
 }
