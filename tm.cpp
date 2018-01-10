@@ -1,6 +1,7 @@
 #include"tm.h"
 #include<queue>
 #include<stack>
+#include<iomanip>
 ifstream fin;
 ofstream fout;
 ofstream path;
@@ -86,16 +87,15 @@ void c_tm::parsecell(const char* p)
 ///--------------------------------------------/////--------------------------------------------//
 c_tm::c_tm(parser* p)
 {
-    p->getsignal(m_in_out);
     vector<node_s*> n;
-    vector<string> sig;
     p->getnode(n);
-    p->getsignal(sig);
-    for(unsigned int i=0;i< sig.size();i++){
+    p->getsignal(m_sig);
+    for(unsigned int i=0;i< m_sig.size();i++){
         c_node* r;
-        r=new c_node(sig[i],"signal",1);
+        r=new c_node(m_sig[i],"signal",1);
         m_vnode.push_back(r);
     }
+    
     for(unsigned int x=0;x < n.size();x++){
         for(unsigned int y=0;y<m_vnode.size();y++){
             if(m_vnode[y]->getname()==n[x]->m_trg)
@@ -104,12 +104,14 @@ c_tm::c_tm(parser* p)
                 m_vnode.erase(m_vnode.begin()+y);
                 y--;
             }
-        }
+        }     
         c_node* r;
         r=new c_node(n[x]-> m_trg,n[x]->m_name,0);
         r->set_delay(2147483647);
         if(n[x]->m_name=="NAND"){
-            for(int c=0,z=0;z<2;c++){
+            for(unsigned int c=0,z=0;z<2;c++){
+                if(c==m_vnode.size())
+                    c=0;
                 if(m_vnode[c]->getname()==n[x]->m_src1 || m_vnode[c]->getname()==n[x]->m_src2){
                     z++;
                     m_vnode[c]->set_outnode(r);
@@ -125,7 +127,7 @@ c_tm::c_tm(parser* p)
                     break;
                 }
             }
-        }
+        } 
         m_vnode.push_back(r);
     }
 }
@@ -181,7 +183,7 @@ void c_tm::initial()
 {
     total_out=0; 
     for(unsigned int x=0;x<m_vnode.size();x++){
-        if(!m_vnode[x]->outsize() && m_vnode[x]->insize()){
+        if(m_vnode[x]->outsize()==0 && m_vnode[x]->insize()!=0){
             m_vtotalout.push_back(m_vnode[x]);
             total_out++;
         }    
@@ -209,7 +211,7 @@ void c_tm::initial()
             }
             m_vtotalout.push_back(m_vnode[x]);
             m_vnode[x]->clearout();
-            m_vnode.push_back(r);
+            //m_vnode.push_back(r);
             m_vcuthead.push_back(m_vnode[x]);
             m_vcuttail.push_back(r);
         }
@@ -218,9 +220,9 @@ void c_tm::initial()
 //--------------------------------------------////--------------------------------------------//
 bool c_tm::matchtree(c_node* p_node,c_node* p_cell,vector<c_node*>& p_input,vector<string>& p_innum)
 {
-    if(p_cell->get_gatename()=="signal")
+    if(p_cell->insize()==0)
     {
-        p_input.push_back(p_node);                  //if this is signal,then push input and inputnumber
+        p_input.push_back(p_node);                  //if node of cell is signal,then push input and inputnumber
         p_innum.push_back(p_cell->getname());
         return 1;
     }
@@ -230,6 +232,7 @@ bool c_tm::matchtree(c_node* p_node,c_node* p_cell,vector<c_node*>& p_input,vect
             return matchtree(p_node->get_in(0),p_cell->get_in(0),p_input,p_innum);          //return if there children tree is match
         }
         else{                                                                               //the condition of NAND
+            /*
             if(p_cell->get_in(0)->get_gatename()!=p_cell->get_in(1)->get_gatename()){
                 if(p_node->get_in(0)->get_gatename()==p_node->get_in(1)->get_gatename())                //if children of cell and node different return 0
                     return 0;
@@ -240,20 +243,55 @@ bool c_tm::matchtree(c_node* p_node,c_node* p_cell,vector<c_node*>& p_input,vect
                         return matchtree(p_node->get_in(0),p_cell->get_in(1),p_input,p_innum) & matchtree(p_node->get_in(1),p_cell->get_in(0),p_input,p_innum);
                 }
             }
-            else{
-                if(matchtree(p_node->get_in(0),p_cell->get_in(0),p_input,p_innum) && matchtree(p_node->get_in(1),p_cell->get_in(1),p_input,p_innum))
+            else{*/
+            vector<c_node*> input_c1;
+            vector<string> number_c1;
+            vector<c_node* > input_c2;
+            vector<string > number_c2;
+            if(matchtree(p_node->get_in(0),p_cell->get_in(0),input_c1,number_c1) && matchtree(p_node->get_in(1),p_cell->get_in(1),input_c1,number_c1) &&  
+               matchtree(p_node->get_in(0),p_cell->get_in(1),input_c2,number_c2) && matchtree(p_node->get_in(1),p_cell->get_in(0),input_c2,number_c2))
+            {
+                int tmpc1=0;
+                int tmpc2=0;
+                for(unsigned int x=0;x<input_c1.size();x++)
                 {   
-                    //cout<<"("<<p_node->get_in(0)->getname()<<","<<p_cell->get_in(0)->getname()<<")"<<endl;
-                    //cout<<"("<<p_node->get_in(1)->getname()<<","<<p_cell->get_in(1)->getname()<<")"<<endl;
-                    //cout<<"("<<p_node->get_in(1)->get_in(0)->getname()<<","<<p_cell->get_in(1)->get_in(0)->getname()<<")"<<endl;
-                    return 1;
+                    int t1;
+                    t1 =partition(input_c1[x]);
+                    int t2;
+                    t2 =partition(input_c2[x]);
+                    if(t1>tmpc1)
+                        tmpc1=t1;
+                    if(t2>tmpc2)
+                        tmpc1=t2;
                 }
-                else if(matchtree(p_node->get_in(0),p_cell->get_in(1),p_input,p_innum) && matchtree(p_node->get_in(1),p_cell->get_in(0),p_input,p_innum))
-                {
-                    return 1;
+                if(tmpc1>tmpc2){
+                    for(unsigned int x=0;x<input_c2.size();x++){
+                        p_input.push_back(input_c2[x]);
+                        p_innum.push_back(number_c2[x]);
+                    }
                 }
-                else return 0;
+                else{
+                    for(unsigned int x=0;x<input_c1.size();x++){
+                        p_input.push_back(input_c1[x]);
+                        p_innum.push_back(number_c1[x]);
+                    }
+                }
+                return true;
+
+            } 
+            else if(matchtree(p_node->get_in(0),p_cell->get_in(0),p_input,p_innum) && matchtree(p_node->get_in(1),p_cell->get_in(1),p_input,p_innum))
+            {   
+                //cout<<"("<<p_node->get_in(0)->getname()<<","<<p_cell->get_in(0)->getname()<<")"<<endl;
+                //cout<<"("<<p_node->get_in(1)->getname()<<","<<p_cell->get_in(1)->getname()<<")"<<endl;
+                //cout<<"("<<p_node->get_in(1)->get_in(0)->getname()<<","<<p_cell->get_in(1)->get_in(0)->getname()<<")"<<endl;
+                return 1;
             }
+            else if(matchtree(p_node->get_in(0),p_cell->get_in(1),p_input,p_innum) && matchtree(p_node->get_in(1),p_cell->get_in(0),p_input,p_innum))
+            {
+            return 1;
+            }
+            else return 0;
+            //}
         }
     }
     else
@@ -264,7 +302,7 @@ int c_tm::partition(c_node* p){
     if(p->is_min()){
         return p->get_delay();
     }
-    else if(p->get_gatename()=="signal")
+    else if(p->get_gatename()=="signal")            //if it's the faout, caculate the node first
     {
         for(unsigned int x=0;x<m_vcuttail.size();x++){
             if(m_vcuttail[x]==p){
@@ -276,10 +314,10 @@ int c_tm::partition(c_node* p){
     }
     else
     {
-        vector<c_node*> innn;
+        vector<c_node*> innn;           //document the final input for cell
         vector<string> out;
         for(unsigned int x=0;x<m_vcell.size();x++){
-            vector<c_node*> cn_tmp;
+            vector<c_node*> cn_tmp;     //regist the tmp final input for cell
             vector<string> str_name;
             if(matchtree(p,m_vcell[x],cn_tmp,str_name)){
                 int mmm=0;
@@ -297,6 +335,7 @@ int c_tm::partition(c_node* p){
             //cn_tmp.clear();
             //str_name.clear();
         }
+        //let the input in the right place
         vector<c_node* >tmp_in;
         tmp_in.resize(out.size());
         for(unsigned int x=0;x<out.size();x++){
@@ -308,7 +347,7 @@ int c_tm::partition(c_node* p){
         }
         p->set_min(true);
         return p->get_delay();
-   }
+    }
     return p->get_delay();
 }
 //--------------------------------------------////--------------------------------------------//
@@ -339,6 +378,7 @@ void c_tm::mapping()
     }
     */
 }
+//--------------------------------------------////--------------------------------------------//
 void c_tm::link()
 {
     //because link the fanout may change the min delay, so let the bool is_min() of m_vtotalout which fan in is a cutpoint be false
@@ -352,8 +392,8 @@ void c_tm::link()
         }
     }
     //link them
-    /*
-    for(unsigned int x=0;x<m_vtotalout.size();x++){
+   
+    /*for(unsigned int x=0;x<m_vtotalout.size();x++){
         cout<<"//--------------------------------------------//"<<endl;
         cout<<"("<<m_vtotalout[x]->getname()<<","<<m_vtotalout[x]->is_min()<<","<<m_vtotalout[x]->getoptname()<<")"<<endl;
         for(unsigned int y=0;y<m_vtotalout[x]->insize();y++)
@@ -365,19 +405,21 @@ void c_tm::link()
         cout<<"("<<m_vtotalout[x]->get_delay()<<","<<m_vtotalout[x]->getname()<<","<<m_vtotalout[x]->is_min()<<","<<m_vtotalout[x]->getoptname()<<")"<<endl;
         for(unsigned int y=0;y<m_vtotalout[x]->optinsize();y++)
             cout<<"("<<m_vtotalout[x]->get_optin(y)->getname()<<","<<m_vtotalout[x]->get_optin(y)->getoptname()<<")"<<endl;
-    }*/
+    }
+    */
 }
+//--------------------------------------------////--------------------------------------------//
 void c_tm::printinfo(const char* a,const char* b)
 {
     fout.open(a);
     path.open(b);
     fout<<".model "<<a<<endl;
     fout<<".inputs ";
-    for(unsigned int x=0;x<m_in_out.size()-total_out;x++)
-        fout<<m_in_out[x]<<" ";
+    for(unsigned int x=0;x<m_sig.size()-total_out;x++)
+        fout<<m_sig[x]<<" ";
     fout<<"\n.outputs ";
-    for(unsigned int x=m_in_out.size()-total_out;x<m_in_out.size();x++)
-        fout<<m_in_out[x]<<" ";
+    for(unsigned int x=m_sig.size()-total_out;x<m_sig.size();x++)
+        fout<<m_sig[x]<<" ";
     fout<<endl;
     queue<c_node* >q_print;
     for(unsigned int x=0;x<m_vtotalout.size();x++){
@@ -395,7 +437,7 @@ void c_tm::printinfo(const char* a,const char* b)
             }
             if(b_print){                                        //if the children are all printed, it can be print
                 tmp->set_print(true);
-                fout<<".gate "<<tmp->getoptname()<<" ";
+                fout<<".gate "<<left<<setw(5)<<tmp->getoptname()<<" ";
                 char ch_name='a';
                 for(unsigned int x=0;x<tmp->optinsize();x++){
                     fout<<char(ch_name+x)<<"="<<tmp->get_optin(x)->getname()<<" ";
@@ -440,12 +482,14 @@ void c_tm::printinfo(const char* a,const char* b)
     while(!sk_node.empty())
     {
         path<<sk_node.top()->getname()<<" ";
+        //path<<"("<<sk_node.top()->getname()<<","<<sk_node.top()->get_delay()<<","<<sk_node.top()->getoptname()<<")\n";
         sk_node.pop();
     }
     path<<endl;
     path.close();
     fout.close();
 }
+//--------------------------------------------////--------------------------------------------//
 
 
 

@@ -76,7 +76,7 @@ class c_tm
         int partition(c_node* );
         bool matchtree(c_node* ,c_node*, vector<c_node*>&, vector<string>& );
         string m_filename;
-        vector<string> m_in_out;
+        vector<string > m_sig;
     public:
         //constructor
         c_tm(parser* );

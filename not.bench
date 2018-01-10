@@ -1,5 +1,0 @@
-INPUT(P1)
-
-OUTPUT(G1)
-
-G1 = NOT(P1)
